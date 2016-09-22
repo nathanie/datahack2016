@@ -32,7 +32,7 @@ uni_labeled <- fread("./unique_vessels.csv", data.table = F,stringsAsFactors = F
 uni_labeled$num_types<-as.integer(as.factor(uni_labeled$type))-1 
 meetings<- merge(meetings,uni_labeled[,c(1,3)],by = 1)
 meetings<- merge(meetings,uni_labeled[,c(1,3)],by.x = 2,by.y = 1)
-num_clust<-150
+num_clust<-50
 clst<- kmeans(meetings[,c(5:6)],centers = num_clust,iter.max = 5000)
 plot(clst$centers,col = clst$cluster)
 meetings$clst<- clst$cluster
@@ -82,12 +82,10 @@ param <- list(  objective           = "multi:softprob",
                 max_depth           = 5, #changed from default of 8
                 subsample           = 0.8, # 0.7
                 colsample_bytree    = 0.7, # 0.7
-                alpha               = 0, 
+                alpha               = 4, 
                 min.child.weight    = 1
                 # lambda = 1
 )
-
-
 
 cv_score <-xgb.cv(params = param,data = xgb.DMatrix(as.matrix(temp[,4:(num_clust+3)]),label = temp$num_types),nfold = 10,nrounds = 2500,
        print.every.n = 2)
