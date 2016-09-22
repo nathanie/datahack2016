@@ -1,3 +1,6 @@
+# this file is used for initial prerocessing of vessels and ports.
+#the next file for preproc. is used for meetings prep.
+
 library(data.table)
 library(dplyr)
 setwd("~/data/datahack2016")
