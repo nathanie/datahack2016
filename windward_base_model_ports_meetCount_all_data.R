@@ -81,6 +81,7 @@ all_data$port_ent_counts<-rowSums(all_data[,4:3723])
 all_data$port_ent_non_zero<-rowSums(all_data[,4:3723]>0)
 
 write.csv(all_data,"all_data.csv",row.names = F)
+all_data<-fread("all_data.csv",data.table = F,stringsAsFactors = F)
 
 rm(ext_feat_Month,ext_feat_hour,ext_feat_day,ext_feat_weekday,time_in_ports,vessels_ports_types)
 
