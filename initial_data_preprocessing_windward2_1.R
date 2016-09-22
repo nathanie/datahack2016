@@ -32,7 +32,8 @@ uni_labeled <- fread("./unique_vessels.csv", data.table = F,stringsAsFactors = F
 uni_labeled$num_types<-as.integer(as.factor(uni_labeled$type))-1 
 meetings<- merge(meetings,uni_labeled[,c(1,3)],by = 1)
 meetings<- merge(meetings,uni_labeled[,c(1,3)],by.x = 2,by.y = 1)
-clst<- kmeans(meetings[,c(5:6)],centers = 1000,iter.max = 5000)
+num_clust<-150
+clst<- kmeans(meetings[,c(5:6)],centers = num_clust,iter.max = 5000)
 plot(clst$centers,col = clst$cluster)
 meetings$clst<- clst$cluster
 
@@ -57,7 +58,7 @@ rm(meetPoints_by_vessels1,meetPoints_by_vessels2)
 #write.csv(meetPoints_by_vessels,"meetPoints_by_vessels.csv",row.names = F)
 #write.csv(ports_by_ves,"ports_by_vessel.csv",row.names = F)
 
-meetPoints_by_vessels <- fread("./meetPoints_by_vessels.csv", data.table = F,stringsAsFactors = F)
+#meetPoints_by_vessels <- fread("./meetPoints_by_vessels.csv", data.table = F,stringsAsFactors = F)
 
 
 temp<- merge(uni_labeled,meetPoints_by_vessels,by = 1)
@@ -70,8 +71,8 @@ h<- sample(nrow(meetPoints_by_vessels),2500)
 trdata<- temp[-h,]
 valdata<- temp[h,]
 library(xgboost)
-dval<-xgb.DMatrix(data=data.matrix(valdata[,3:3592]),label=types[h])
-dtrain<-xgb.DMatrix(data=data.matrix(trdata[,3:3592]),label=types[-h])
+dval<-xgb.DMatrix(data=data.matrix(valdata[,4:(num_clust+3)]),label=types[h])
+dtrain<-xgb.DMatrix(data=data.matrix(trdata[,4:(num_clust+3)]),label=types[-h])
 watchlist<-list(val=dval,train=dtrain)
 param <- list(  objective           = "multi:softprob", 
                 eval_metric         = "mlogloss",
@@ -88,7 +89,7 @@ param <- list(  objective           = "multi:softprob",
 
 
 
-cv_score <-xgb.cv(params = param,data = xgb.DMatrix(as.matrix(temp[,4:303]),label = temp$num_types),nfold = 10,nrounds = 2500,
+cv_score <-xgb.cv(params = param,data = xgb.DMatrix(as.matrix(temp[,4:(num_clust+3)]),label = temp$num_types),nfold = 10,nrounds = 2500,
        print.every.n = 2)
 
 clf <- xgb.train(   params              = param, 
