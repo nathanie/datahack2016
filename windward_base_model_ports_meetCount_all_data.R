@@ -57,33 +57,45 @@ uni_labeled <- fread("uni_labeled.csv", data.table = F,stringsAsFactors = F)
 ports_by_ves <- fread("ports_by_ves.csv", data.table = F,stringsAsFactors = F)
 port_visits <- fread("port_visits.csv", data.table = F,stringsAsFactors = F)
 
-ports_by_ves[,3724:3905]<-NULL
-
 ext_feat_weekday<- dcast(port_visits,port_visits$ves_id~port_visits$dayOfWeek)
 ext_feat_day<- dcast(port_visits,port_visits$ves_id~port_visits$dayOfMonth)
 ext_feat_hour<- dcast(port_visits,port_visits$ves_id~port_visits$hour)
 ext_feat_Month<- dcast(port_visits,port_visits$ves_id~port_visits$Month)
 ext_feat_country<- dcast(port_visits,port_visits$ves_id~port_visits$country)
 
-ports_by_ves<-merge(ports_by_ves,ext_feat_day,by=1)
-ports_by_ves<-merge(ports_by_ves,ext_feat_weekday,by=1)
-ports_by_ves<-merge(ports_by_ves,ext_feat_hour,by=1)
-ports_by_ves<-merge(ports_by_ves,ext_feat_Month,by=1)
-ports_by_ves<-merge(ports_by_ves,ext_feat_country,by=1)
+clst<-kmeans(meetings[,5:6],centers = 300,iter.max = 5000)
+meetings$clst<-clst$cluster
+ves_clst_location<- dcast(meetings,meetings$ves_id1~meetings$clst)
+names(ves_clst_location)[2:301]<- c(paste0(rep('clst_'),c(1:300)))
 
 time_in_ports<-port_visits %>%
   group_by(ves_id) %>%
   summarise(total_time_in_ports = sum(duration_min),avg_time_in_port=mean(duration_min))
 
-all_data<- merge(ports_by_ves,time_in_ports,by=1)
+time_in_meets<-meetings %>%
+  group_by(ves_id1) %>%
+  summarise(total_time_in_ports = sum(duration_min),avg_time_in_port=mean(duration_min))
+
+ports_by_ves<-merge(ports_by_ves,ext_feat_day,by=1,all.x = T)
+ports_by_ves<-merge(ports_by_ves,ext_feat_weekday,by=1,all.x = T)
+ports_by_ves<-merge(ports_by_ves,ext_feat_hour,by=1,all.x = T)
+ports_by_ves<-merge(ports_by_ves,ext_feat_Month,by=1,all.x = T)
+ports_by_ves<-merge(ports_by_ves,ext_feat_country,by=1,all.x = T)
+all_data<- merge(ports_by_ves,time_in_ports,by=1,all.x = T)
+all_data<- merge(all_data,time_in_meets,by=1,all.x = T)
+all_data<- merge(all_data,ves_clst_location,by=1,all.x = T)
 
 all_data$port_ent_counts<-rowSums(all_data[,4:3723])
 all_data$port_ent_non_zero<-rowSums(all_data[,4:3723]>0)
 
 write.csv(all_data,"all_data.csv",row.names = F)
+
+#------start here fresh
+
 all_data<-fread("all_data.csv",data.table = F,stringsAsFactors = F)
 
-rm(ext_feat_Month,ext_feat_hour,ext_feat_day,ext_feat_weekday,time_in_ports,vessels_ports_types)
+rm(ext_feat_Month,ext_feat_hour,ext_feat_day,ext_feat_weekday,time_in_ports,ext_feat_country,
+   ports_by_ves,test_vessels,ves_clst_location,time_in_meets,clst)
 
 features<-as.data.frame(names(all_data))
 
